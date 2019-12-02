@@ -14,4 +14,4 @@ def read_gold_labels_from_file(path):
 
 
 def print_score(y_pred, y_true):
-    print(skm.f1_score(y_true, y_pred, average='samples', labels=np.unique(y_pred)))
+    print(skm.f1_score(y_true, y_pred, average='macro', labels=np.unique(y_pred)))

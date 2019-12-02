@@ -48,10 +48,15 @@ for filename in os.listdir(prediction_folder):
     f.close()
 X = ft.get_features(lines)
 y_pred = dummyclassifier.predict(X)
-
 gold_labels = ev.read_gold_labels_from_file(gold_label_folder)
 y_true = [str(category_to_number_dict[y]) for y in gold_labels]
-print(set(y_true) - set(y_pred.astype(str)))
+correct = 0
+count = 0
+for y in y_true:
+    if y == '1':
+        correct += 1
+    count += 1
+print(correct / count)
 ev.print_score(y_pred.astype(str), gold_labels)
 
 """
