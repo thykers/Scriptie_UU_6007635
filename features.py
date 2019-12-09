@@ -12,7 +12,9 @@ def get_features(data):
 def length_of_span(data):
     return np.array([len(span) for span in data]).reshape(-1, 1)
 
-def countvectorizer(data):
+def initialize_vectoriser(data):
     vectorizer = CountVectorizer()
-    X = vectorizer.fit(data)
-    return X
+    vectors = vectorizer.fit_transform(data)
+
+def transform_data_to_countvector(data, vector):
+    return vector.transform(data)

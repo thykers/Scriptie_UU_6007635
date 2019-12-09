@@ -4,6 +4,16 @@ from pathlib import Path
 from sklearn.linear_model import LogisticRegression
 import features as ft
 import evaluate as ev
+from sklearn.feature_extraction.text import CountVectorizer
+
+def read_from_file(path):
+    spans = []
+    for filename in os.listdir(path):
+        f = open(path / filename, encoding="utf-8")
+        for span in f.readlines():
+            spans.append(span.replace("\n", ""))
+    f.close()
+    return spans
 
 category_to_number_dict = {"Whataboutism,Straw_Men,Red_Herring": 0, "Loaded_Language":1, "Name_Calling,Labeling":2, "Flag-Waving":3,
 "Exaggeration,Minimisation":4, "Causal_Oversimplification":5, "Repetition":6, "Slogans":7, "Black-and-White_Fallacy":8,
@@ -15,57 +25,28 @@ number_to_category_dict = {0:"Whataboutism,Straw_Men,Red_Herring", 1:"Loaded_Lan
 9:"Appeal_to_Authority", 10:"Appeal_to_fear-prejudice", 11:"Doubt", 12:"Bandwagon,Reductio_ad_hitlerum",
 13:"Thought-terminating_Cliches"}
 
-data_folder = Path("./Data/datasets/alternative-train-spans-task2/")
-label_folder = Path("./Data/datasets/alternative-train-spans-labels-task2/")
+training_data_folder = Path("./Data/datasets/alternative-train-spans-task2/")
+training_label_folder = Path("./Data/datasets/alternative-train-spans-labels-task2/")
 prediction_folder = Path("./Data/datasets/alternative-dev-spans-task2/")
 gold_label_folder = Path("./Data/datasets/alternative-dev-spans-labels-task2/")
 
-logreg_classifier = LogisticRegression(penalty='l2', class_weight='balanced', solver="lbfgs")
+logreg_classifier = LogisticRegression(penalty='l2', class_weight='balanced', solver="lbfgs", multi_class='auto')
+vectorizer = CountVectorizer()
 
-#Start training
-lines = []
-labels = []
-for filename in os.listdir(data_folder):
-    f = open(data_folder / filename, encoding="utf-8")
-    for line in f.readlines():
-        lines.append(line)
-    f.close()
+training_spans = read_from_file(training_data_folder)
+vectors = vectorizer.fit_transform(training_spans)
+#X = ft.get_features(training_spans)
+#X = np.hstack((X, vectors.toarray()))
+training_labels = read_from_file(training_label_folder)
+Y = np.array([category_to_number_dict[y] for y in training_labels])
+logreg_classifier.fit(vectors, Y)
 
-X = ft.get_features(lines)
-X.reshape(-1, 1)
+spans = read_from_file(prediction_folder)
+vector = vectorizer.transform(spans)
+#X = ft.get_features(spans)
+#X = np.hstack((X, vector.toarray()))
+y_pred = logreg_classifier.predict(vector)
 
-for filename in os.listdir(label_folder):
-    f = open(label_folder / filename, encoding="utf-8")
-    for label in f.readlines():
-        labels.append(label.replace("\n", ""))
-
-Y = [category_to_number_dict[y] for y in labels]
-logreg_classifier.fit(X, Y)
-#End training
-print(logreg_classifier.predict(np.array([3, 15, 30 , 39, 47, 60, 100, 200, 300, 500]).reshape(-1, 1)))
-lines=[]
-for filename in os.listdir(prediction_folder):
-    f = open(prediction_folder / filename, encoding="utf-8")
-    for line in f.readlines():
-        lines.append(line)
-    f.close()
-X = ft.get_features(lines)
-y_pred = logreg_classifier.predict(X)
-gold_labels = ev.read_gold_labels_from_file(gold_label_folder)
-y_true = [str(category_to_number_dict[y]) for y in gold_labels]
-ev.print_score(y_pred.astype(str), gold_labels)
-
-"""
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.linear_model import LogisticRegression
-vectorizer.fit(lines)
-vector = vectorizer.transform(lines)
-print(vector.shape)
-correct = 0
-count = 0
-for y in y_true:
-    if y == '1':
-        correct += 1
-    count += 1
-print(correct / count)
-"""
+gold_labels = read_from_file(gold_label_folder)
+y_true = np.array([category_to_number_dict[x] for x in gold_labels])
+ev.print_score(y_pred, y_true)
