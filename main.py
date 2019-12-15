@@ -1,43 +1,54 @@
 import os
+import numpy as np
 from pathlib import Path
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.dummy import DummyClassifier
+import features as ft
+import evaluate as ev
+from sklearn.feature_extraction.text import CountVectorizer
+import dictionaries as dt
 
-category_to_number_dict = {"Whataboutism,Straw_Men,Red_Herring": 0, "Loaded_Language":1, "Name_Calling,Labeling":2, "Flag-Waving":3,
-"Exaggeration,Minimisation":4, "Causal_Oversimplification":5, "Repetition":6, "Slogans":7, "Black-and-White_Fallacy":8,
-"Appeal_to_Authority":9, "Appeal_to_fear-prejudice":10, "Doubt":11, "Bandwagon,Reductio_ad_hitlerum":12,
-"Thought-terminating_Cliches":13 }
-
-number_to_category_dict = {0:"Whataboutism,Straw_Men,Red_Herring", 1:"Loaded_Language", 2:"Name_Calling,Labeling", 3:"Flag-Waving",
-4:"Exaggeration,Minimisation", 5:"Causal_Oversimplification", 6:"Repetition", 7:"Slogans", 8:"Black-and-White_Fallacy",
-9:"Appeal_to_Authority", 10:"Appeal_to_fear-prejudice", 11:"Doubt", 12:"Bandwagon,Reductio_ad_hitlerum",
-13:"Thought-terminating_Cliches"}
-
-dummyclassifier = DummyClassifier(strategy="most_frequent")
-logreg = LogisticRegression()
-vectorizer = CountVectorizer()
-data_folder = Path("./Data/datasets/alternative-train-spans-task2/")
-label_folder = Path("./Data/datasets/alternative-train-spans-labels-task2/")
-lines = []
-labels = []
-for filename in os.listdir(data_folder):
-    f = open(data_folder / filename, encoding="utf-8")
-    for line in f.readlines():
-        lines.append(line)
+def read_from_file(path):
+    spans = []
+    filename_of_article = []
+    for filename in os.listdir(path):
+        f = open(path / filename, encoding="utf-8")
+        for span in f.readlines():
+            spans.append(span.replace("\n", ""))
+            filename_of_article.append(filename)
     f.close()
+    return spans, filename_of_article
 
-X = [x for x in range(len(lines))]
-for filename in os.listdir(label_folder):
-    f = open(label_folder / filename, encoding="utf-8")
-    for label in f.readlines():
-        labels.append(label.replace("\n", ""))
-Y = [category_to_number_dict[y] for y in labels]
-dummyclassifier.fit(X, Y)
-predictions = dummyclassifier.predict([x for x in range(8)])
-for p in predictions:
-    print(number_to_category_dict[p])
+training_data_folder = Path("./Data/datasets/alternative-train-spans-task2/")
+training_label_folder = Path("./Data/datasets/alternative-train-spans-labels-task2/")
+prediction_folder = Path("./Data/datasets/alternative-dev-spans-task2/")
+gold_label_folder = Path("./Data/datasets/alternative-dev-spans-labels-task2/")
 
-vectorizer.fit(lines)
-vector = vectorizer.transform(lines)
-print(vector.shape)
+logreg_classifier = LogisticRegression(penalty='l2', class_weight='balanced', solver="lbfgs", multi_class='auto')
+vectorizer = CountVectorizer()
+
+if __name__ == "__main__":
+
+    training_spans, filename_of_article_per_span = read_from_file(training_data_folder)
+    X = ft.get_features(training_spans, training_data_folder, filename_of_article_per_span)
+
+    training_labels, filename_of_label = read_from_file(training_label_folder)
+    Y = np.array([dt.category_to_number_dict[y] for y in training_labels])
+
+    logreg_classifier.fit(X, Y)
+
+    spans, filenames_of_article = read_from_file(prediction_folder)
+    X = ft.get_features(spans, prediction_folder, filenames_of_article)
+
+    y_pred = logreg_classifier.predict(X)
+    gold_labels, filename_of_label = read_from_file(gold_label_folder)
+    y_true = np.array([dt.category_to_number_dict[x] for x in gold_labels])
+
+    ev.print_score(y_pred, y_true)
+
+#vectors = vectorizer.fit_transform(training_spans)
+#logreg_classifier.fit(vectors, Y)
+#vector = vectorizer.transform(spans)
+#y_pred = logreg_classifier.predict(vector)
+
+#X = np.hstack((X, vector.toarray()))
+#X = np.hstack((X, vectors.toarray()))

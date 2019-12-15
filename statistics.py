@@ -7,7 +7,7 @@ data_folder_alternative_articles = Path("./Data/datasets/alternative-train-artic
 data_folder_alternative_labels = Path("./Data/datasets/alternative-train-labels-task2/")
 
 articles = dict()
-for filename in os.listdir(data_folder_labels):
+for filename in os.listdir(data_folder_labels)[:246]:
     f = open(data_folder_labels / filename, encoding="utf-8")
     lines = []
     for line in f:
@@ -34,7 +34,12 @@ for article in articles.values():
             smallest_span = span_length
         span_count += 1
         total_span_length += (span_length)
-
+total_value = 0
+for value in category_dict.values():
+    total_value += value
+print(total_value)
+for category in category_dict.keys():
+    print("catergory: {} frequency: {} percentage: {}%".format(category, category_dict[category], category_dict[category] / total_value * 100 ))
 print(total_span_length / span_count)
 print(biggest_span)
 print(smallest_span)

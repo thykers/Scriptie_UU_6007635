@@ -1,0 +1,10 @@
+List of Contextual Based Features:
+-Number of words in the article
+-Averaged Number of Words per Sentence.
+-Relative Punctation Frequency in article.
+-Relative Capital Frequency in article
+-Averaged character length.
+-Number of Emotional Words
+-Number of Stop Words
+-Variances
+-Word embeddings
